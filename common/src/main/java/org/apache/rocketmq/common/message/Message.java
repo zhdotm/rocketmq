@@ -22,12 +22,24 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * 消息类
+ */
 public class Message implements Serializable {
     private static final long serialVersionUID = 8445773977080406428L;
 
+    /**
+     * 主题名字
+     */
     private String topic;
     private int flag;
+    /**
+     * 消息扩展信息，Tag、keys、延迟级别都保存在这里
+     */
     private Map<String, String> properties;
+    /**
+     * 消息体，字节数组。需要注意生产者使用什么编码，消费者也必须使用相同编码解码，否则会产生乱码
+     */
     private byte[] body;
     private String transactionId;
 
@@ -60,6 +72,12 @@ public class Message implements Serializable {
         this(topic, tags, keys, 0, body, true);
     }
 
+    /**
+     * 设置消息的key，多个key可以用MessageConst.KEY_SEPARATOR（空格）分隔或者直接用另一个重载方法
+     * 如果 Broker 中 messageIndexEnable=true 则会根据 key创建消息的Hash索引，帮助用户进行快速查询
+     *
+     * @param keys 消息的key
+     */
     public void setKeys(String keys) {
         this.putProperty(MessageConst.PROPERTY_KEYS, keys);
     }
@@ -78,16 +96,22 @@ public class Message implements Serializable {
         }
     }
 
+    /**
+     * 如果还有其他扩展信息，可以存放在这里。内部是一个Map，重复调用会覆盖旧值。
+     *
+     * @param name  名称
+     * @param value 值
+     */
     public void putUserProperty(final String name, final String value) {
         if (MessageConst.STRING_HASH_SET.contains(name)) {
             throw new RuntimeException(String.format(
-                "The Property<%s> is used by system, input another please", name));
+                    "The Property<%s> is used by system, input another please", name));
         }
 
         if (value == null || value.trim().isEmpty()
-            || name == null || name.trim().isEmpty()) {
+                || name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException(
-                "The name or value of property can not be null or blank string!"
+                    "The name or value of property can not be null or blank string!"
             );
         }
 
@@ -118,6 +142,11 @@ public class Message implements Serializable {
         return this.getProperty(MessageConst.PROPERTY_TAGS);
     }
 
+    /**
+     * 消息过滤的标记，用户可以订阅某个Topic的某些Tag，这样Broker只会把订阅了topic-tag的消息发送给消费者
+     *
+     * @param tags 消息过滤的标记
+     */
     public void setTags(String tags) {
         this.putProperty(MessageConst.PROPERTY_TAGS, tags);
     }
@@ -145,6 +174,11 @@ public class Message implements Serializable {
         return 0;
     }
 
+    /**
+     * 设置延迟级别，延迟多久消费者可以消费
+     *
+     * @param level 延迟级别
+     */
     public void setDelayTimeLevel(int level) {
         this.putProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL, String.valueOf(level));
     }
@@ -208,11 +242,11 @@ public class Message implements Serializable {
     @Override
     public String toString() {
         return "Message{" +
-            "topic='" + topic + '\'' +
-            ", flag=" + flag +
-            ", properties=" + properties +
-            ", body=" + Arrays.toString(body) +
-            ", transactionId='" + transactionId + '\'' +
-            '}';
+                "topic='" + topic + '\'' +
+                ", flag=" + flag +
+                ", properties=" + properties +
+                ", body=" + Arrays.toString(body) +
+                ", transactionId='" + transactionId + '\'' +
+                '}';
     }
 }
