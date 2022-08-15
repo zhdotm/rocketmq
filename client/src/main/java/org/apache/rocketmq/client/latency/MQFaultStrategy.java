@@ -22,10 +22,16 @@ import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
 
+/**
+ * 消息失败策略，延迟实现的门面类。
+ */
 public class MQFaultStrategy {
     private final static InternalLogger log = ClientLogger.getLog();
     private final LatencyFaultTolerance<String> latencyFaultTolerance = new LatencyFaultToleranceImpl();
 
+    /**
+     * Broker故障延迟机制
+     */
     private boolean sendLatencyFaultEnable = false;
 
     private long[] latencyMax = {50L, 100L, 550L, 1000L, 2000L, 3000L, 15000L};
@@ -55,6 +61,13 @@ public class MQFaultStrategy {
         this.sendLatencyFaultEnable = sendLatencyFaultEnable;
     }
 
+    /**
+     * 选择一个消息对列
+     *
+     * @param tpInfo         主题信息
+     * @param lastBrokerName lastBrokerName就是上一次选择的执行发送消息失败的Broker
+     * @return
+     */
     public MessageQueue selectOneMessageQueue(final TopicPublishInfo tpInfo, final String lastBrokerName) {
         if (this.sendLatencyFaultEnable) {
             try {
@@ -63,7 +76,9 @@ public class MQFaultStrategy {
                     int pos = Math.abs(index++) % tpInfo.getMessageQueueList().size();
                     if (pos < 0)
                         pos = 0;
+                    //1）轮询获取一个消息队列。
                     MessageQueue mq = tpInfo.getMessageQueueList().get(pos);
+                    //2）验证该消息队列是否可用，latencyFaultTolerance.isAvailable(mq.getBrokerName())是关键。
                     if (latencyFaultTolerance.isAvailable(mq.getBrokerName()))
                         return mq;
                 }
@@ -78,6 +93,7 @@ public class MQFaultStrategy {
                     }
                     return mq;
                 } else {
+                    //如果返回的MessageQueue可用，则移除latencyFaultTolerance关于该topic的条目，表明该Broker故障已经修复。
                     latencyFaultTolerance.remove(notBestBroker);
                 }
             } catch (Exception e) {

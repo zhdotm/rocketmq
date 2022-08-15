@@ -32,6 +32,9 @@ public class Message implements Serializable {
      * 主题名字
      */
     private String topic;
+    /**
+     * 目前没用。
+     */
     private int flag;
     /**
      * 消息扩展信息，Tag、keys、延迟级别都保存在这里

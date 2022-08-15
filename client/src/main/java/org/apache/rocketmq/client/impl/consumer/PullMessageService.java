@@ -77,6 +77,8 @@ public class PullMessageService extends ServiceThread {
     }
 
     private void pullMessage(final PullRequest pullRequest) {
+        //根据消费组名从MQClientInstance中获取消费者的内部实现类MQConsumerInner，
+        // 令人意外的是，这里将consumer强制转换为DefaultMQPushConsumerImpl，也就是PullMessageService
         final MQConsumerInner consumer = this.mQClientFactory.selectConsumer(pullRequest.getConsumerGroup());
         if (consumer != null) {
             DefaultMQPushConsumerImpl impl = (DefaultMQPushConsumerImpl) consumer;
@@ -90,9 +92,12 @@ public class PullMessageService extends ServiceThread {
     public void run() {
         log.info(this.getServiceName() + " service started");
 
+        //Stopped声明为volatile，每执行一次业务逻辑，检测一下其运行状态，可以通过其他线程将Stopped设置为true，从而停止该线程。
         while (!this.isStopped()) {
             try {
+                //从pullRequestQueue中获取一个PullRequest消息拉取任务，如果pullRequestQueue为空，则线程将阻塞，直到有拉取任务被放入。
                 PullRequest pullRequest = this.pullRequestQueue.take();
+                //调用pullMessage方法进行消息拉取。
                 this.pullMessage(pullRequest);
             } catch (InterruptedException ignored) {
             } catch (Exception e) {
