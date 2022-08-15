@@ -86,8 +86,14 @@ public class RequestCode {
 
     public static final int DELETE_KV_CONFIG = 102;
 
+    /**
+     * Broker注册自身信息到Namesrv。
+     */
     public static final int REGISTER_BROKER = 103;
 
+    /**
+     * Broker取消注册自身信息到Namesrv。
+     */
     public static final int UNREGISTER_BROKER = 104;
     public static final int GET_ROUTEINFO_BY_TOPIC = 105;
 
@@ -97,8 +103,14 @@ public class RequestCode {
     public static final int GET_TOPIC_STATS_INFO = 202;
     public static final int GET_CONSUMER_CONNECTION_LIST = 203;
     public static final int GET_PRODUCER_CONNECTION_LIST = 204;
+    /**
+     * 删除Broker的写权限。
+     */
     public static final int WIPE_WRITE_PERM_OF_BROKER = 205;
 
+    /**
+     * 获取全部Topic名字。
+     */
     public static final int GET_ALL_TOPIC_LIST_FROM_NAMESERVER = 206;
 
     public static final int DELETE_SUBSCRIPTIONGROUP = 207;
@@ -116,6 +128,9 @@ public class RequestCode {
 
     public static final int DELETE_TOPIC_IN_BROKER = 215;
 
+    /**
+     * 删除Topic信息。
+     */
     public static final int DELETE_TOPIC_IN_NAMESRV = 216;
     public static final int GET_KVLIST_BY_NAMESPACE = 219;
 
@@ -163,11 +178,13 @@ public class RequestCode {
     public static final int GET_BROKER_CONSUME_STATS = 317;
 
     /**
+     * 更新Namesrv配置，当前配置是实时生效的。
      * update the config of name server
      */
     public static final int UPDATE_NAMESRV_CONFIG = 318;
 
     /**
+     * 获取Namesrv配置。
      * get config from name server
      */
     public static final int GET_NAMESRV_CONFIG = 319;
