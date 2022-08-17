@@ -1293,12 +1293,17 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_DELAY_TIME_LEVEL);
         }
 
+        //第一步：数据校验。判断transactionListener的值是否为null、消息Topic为空检查、消息体为空检查等。
         Validators.checkMessage(msg, this.defaultMQProducer);
 
+        //第二步：消息预处理。预处理的主要功能是在消息扩展字段中设置消息类型。
         SendResult sendResult = null;
+        //表示当前消息是事务 Half 消息
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
+        //用于设置发送消息的生产者组名，以及设置事务消息的扩展字段
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_PRODUCER_GROUP, this.defaultMQProducer.getProducerGroup());
         try {
+            //第三步：发送事务消息。调用同步发送消息的方法将事务消息发送出去。
             sendResult = this.send(msg);
         } catch (Exception e) {
             throw new MQClientException("send message Exception", e);
@@ -1320,6 +1325,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         localTransactionState = localTransactionExecuter.executeLocalTransactionBranch(msg, arg);
                     } else if (transactionListener != null) {
                         log.debug("Used new transaction API");
+
+                        //第四步：执行本地事务。消息发送成功后，执行本地事务。
                         localTransactionState = transactionListener.executeLocalTransaction(msg, arg);
                     }
                     if (null == localTransactionState) {
@@ -1347,6 +1354,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         }
 
         try {
+            //在本地事务处理完成后，根据本地事务的执行结果调用 DefaultMQProducerImpl.endTransaction（）方法，通知Broker进行Commit或Rollback
             this.endTransaction(msg, sendResult, localTransactionState, localException);
         } catch (Exception e) {
             log.warn("local transaction execute " + localTransactionState + ", but end broker transaction failed", e);
@@ -1381,11 +1389,14 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         } else {
             id = MessageDecoder.decodeMessageId(sendResult.getMsgId());
         }
+        //事务消息的事务id。
         String transactionId = sendResult.getTransactionId();
+        //存储当前Half消息的Broker服务器的socket地址。
         final String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(sendResult.getMessageQueue().getBrokerName());
         EndTransactionRequestHeader requestHeader = new EndTransactionRequestHeader();
         requestHeader.setTransactionId(transactionId);
         requestHeader.setCommitLogOffset(id.getOffset());
+        //本地事务执行结果。
         switch (localTransactionState) {
             case COMMIT_MESSAGE:
                 requestHeader.setCommitOrRollback(MessageSysFlag.TRANSACTION_COMMIT_TYPE);
@@ -1405,6 +1416,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         requestHeader.setTranStateTableOffset(sendResult.getQueueOffset());
         requestHeader.setMsgId(sendResult.getMsgId());
         String remark = localException != null ? ("executeLocalTransactionBranch exception: " + localException.toString()) : null;
+        //以发送oneway消息的方式发送该RPC请求给Broker。
+        //当前Half消息发送完成后，会返回生产者消息发送到哪个Broker、消息位点是多少，再根据本地事务的执行结果封装 EndTransactionRequestHeader 对象，最后调用MQClientAPIImpl.endTransactionOneway（）方法通知Broker进行Commit或Rollback。
         this.mQClientFactory.getMQClientAPIImpl().endTransactionOneway(brokerAddr, requestHeader, remark,
                 this.defaultMQProducer.getSendMsgTimeout());
     }

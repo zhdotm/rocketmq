@@ -17,6 +17,7 @@
 package org.apache.rocketmq.client.producer;
 
 import java.util.concurrent.ExecutorService;
+
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
@@ -28,8 +29,17 @@ public class TransactionMQProducer extends DefaultMQProducer {
     private int checkThreadPoolMaxSize = 1;
     private int checkRequestHoldMax = 2000;
 
+    /**
+     * Broker回查请求处理的线程池。
+     */
     private ExecutorService executorService;
 
+    /**
+     * 事务监听器，主要功能是执行本地事务和执行事务回查。
+     * 事务监听器包含executeLocalTransaction（）和checkLocalTransaction（） 两个方法。
+     * executeLocalTransaction（）方法执行本地事务，
+     * checkLocalTransaction（）方法是当生产者由于各种问题导致未发送Commit或Rollback消息给Broker时，Broker回调生产者查询本地事务状态的处理方法。
+     */
     private TransactionListener transactionListener;
 
     public TransactionMQProducer() {
@@ -57,6 +67,7 @@ public class TransactionMQProducer extends DefaultMQProducer {
 
     @Override
     public void start() throws MQClientException {
+        //初始化事务消息的环境信息
         this.defaultMQProducerImpl.initTransactionEnv();
         super.start();
     }
@@ -74,7 +85,7 @@ public class TransactionMQProducer extends DefaultMQProducer {
     @Override
     @Deprecated
     public TransactionSendResult sendMessageInTransaction(final Message msg,
-        final LocalTransactionExecuter tranExecuter, final Object arg) throws MQClientException {
+                                                          final LocalTransactionExecuter tranExecuter, final Object arg) throws MQClientException {
         if (null == this.transactionCheckListener) {
             throw new MQClientException("localTransactionBranchCheckListener is null", null);
         }
@@ -85,7 +96,7 @@ public class TransactionMQProducer extends DefaultMQProducer {
 
     @Override
     public TransactionSendResult sendMessageInTransaction(final Message msg,
-        final Object arg) throws MQClientException {
+                                                          final Object arg) throws MQClientException {
         if (null == this.transactionListener) {
             throw new MQClientException("TransactionListener is null", null);
         }
